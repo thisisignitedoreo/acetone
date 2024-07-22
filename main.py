@@ -291,6 +291,8 @@ def parse_condition(condition, ifloc, loop=False):
         return "z"
     elif fcondition == "negative":
         return "n"
+    elif fcondition == "positive":
+        return "!n"
     elif fcondition == "not":
         if len(condition) == 1:
             error_loc(condition[0].loc, "expected `not zero`")
@@ -482,13 +484,13 @@ def parse(lexed, r=0, last_loop=-1):
                         error_loc(f.loc, "expected `inbox`")
                     prg.append(Op(OP_INBOX, None, oploc))
                 else:
-                    prg.append(Op(OP_COPYFROM, f, oploc))
+                    prg.append(Op(OP_COPYFROM, f.value, oploc))
                 if t.type == TOKEN_WORD:
                     if t.value != "outbox":
                         error_loc(t.loc, "expected `outbox`")
                     prg.append(Op(OP_OUTBOX, None, oploc))
                 else:
-                    prg.append(Op(OP_COPYTO, t, oploc))
+                    prg.append(Op(OP_COPYTO, t.value, oploc))
 
             # base game low-level instructions
             elif operation.lower() == "inbox":
