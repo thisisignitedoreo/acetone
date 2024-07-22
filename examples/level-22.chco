@@ -1,0 +1,19 @@
+
+while {
+    copy inbox 0;
+    copy 9 1;
+    copyto 2;
+    bump+ 2;
+    sub 0;
+    while negative {
+        copy 2 outbox;
+        copyfrom 2;
+        add 1;
+        copyto 3;
+        copy 2 1;
+        copy 3 2;
+        copyfrom 2;
+        sub 0;
+    }
+    if zero {copyfrom 2; outbox;}
+}
