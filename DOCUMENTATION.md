@@ -48,7 +48,7 @@ all others are either shortcuts or interface logic:
 - `continue`</br>
   go to start of a current loop
 - `call`</br>
-  either call a macro (inline it) or go to section (does **not** go back to
+  either call a macro (inline it) or go to a section (does **not** go back to
   where it was called)
 
 ## ifs, loops, macros
