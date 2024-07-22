@@ -7,14 +7,14 @@ acetone's syntax is a little bit different than some other programming languages
 1. everything is case insensetive (e.g. `inbox` = `InBox` = `INBOX`)
 2. statement arguments are delimited by nothing, they just have to be different
    tokens
-3. there are only 7 token types:
-   3.1. TOKEN_WORD: any word: `word`
-   3.2. TOKEN_NUMBER: any number (no floating point magic): `123`
-   3.3. TOKEN_REFNUMBER: any pointer (e.g. number reference): `[0]`
-   3.4. TOKEN_OCURLY: `{`
-   3.5. TOKEN_CCURLY: `}`
-   3.6. TOKEN_SEMICOLON: `;`
-   3.7. TOKEN_EQUALS: `=` _(unused yet)_
+3. there are only 7 token types:<br/>
+   3.1. TOKEN_WORD: any word: `word`<br/>
+   3.2. TOKEN_NUMBER: any number (no floating point magic): `123`<br/>
+   3.3. TOKEN_REFNUMBER: any pointer (e.g. number reference): `[0]`<br/>
+   3.4. TOKEN_OCURLY: `{`<br/>
+   3.5. TOKEN_CCURLY: `}`<br/>
+   3.6. TOKEN_SEMICOLON: `;`<br/>
+   3.7. TOKEN_EQUALS: `=` _(unused yet)_<br/>
    also note: word tokens can have not only alphanumeric symbols, but also some
    specials, since they are not used in any way: `_+-:/!?`<br/>
    but, they have to not start with a number: `aword`, `bump+`, `++--`, `???`
@@ -38,15 +38,16 @@ a handful of statements are just in-game commands:
 - `jump L`
 - `jumpz L`
 - `jumpn L`
+
 all others are either shortcuts or interface logic:
-- `copy A B`
+- `copy A B`</br>
   copy from A (either `inbox`, number or pointer) to B (either `outbox`, number
   or pointer)
-- `break`
+- `break`</br>
   break from current loop
-- `continue`
+- `continue`</br>
   go to start of a current loop
-- `call`
+- `call`</br>
   either call a macro (inline it) or go to section (does **not** go back to
   where it was called)
 
