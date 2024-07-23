@@ -1,4 +1,6 @@
 
+![logo](assets/logo.png)
+
 # acetone
 programming language that compiles into Human Resource Machine assembly
 
