@@ -1,5 +1,5 @@
 
-![logo](assets/logo.png)
+<img href="assets/logo.png" alt="logo" width=100>
 
 # acetone
 programming language that compiles into Human Resource Machine assembly
