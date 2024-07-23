@@ -15,12 +15,14 @@ def strtofont(string):
     lines = lines[1:]
     c = None
     for i in lines:
+        i = i.strip()
         if i.startswith("#"): continue
         if len(i) == 1:
             res[i] = []
             c = i
         elif len(i) == 2:
-            res[c].append(None)
+            if i == "--": res[c].append(None)
+            if i == "-b": res[c].append("bezier")
         elif len(i) == 0:
             pass
         else:
@@ -234,13 +236,36 @@ def crossreference(lexed):
 def draw_comment(string, font_size=60000, pad=(2000, 3000), kerning=3000):
     cur = [pad[0] + 1, pad[1] + 1]
     w, h = font_size/sx, font_size/sy
+    parse_pair = lambda x, c: (c[0] + x[0] * w, c[1] + x[1] * h)
     result = []
     for i in string:
         i = i.lower()
-        if i not in font.keys(): continue
-        for j in font[i]:
+        if i not in font.keys():
+            result.append((cur[0], cur[1]))
+            result.append((cur[0] + w, cur[1]))
+            result.append((cur[0] + w, cur[1] + h))
+            result.append((cur[0], cur[1] + h))
+            result.append((cur[0], cur[1]))
+            result.append((0, 0))
+            result.append((cur[0], cur[1]))
+            result.append((cur[0] + w, cur[1] + h))
+            result.append((0, 0))
+            result.append((cur[0] + w, cur[1]))
+            result.append((cur[0], cur[1] + h))
+            cur[0] += w + kerning
+            continue
+        n = 0
+        while n < len(font[i]):
+            j = font[i][n]
             if j is None: result.append((0, 0))
-            else: result.append((clamp(0, 65535, cur[0] + j[0] * w), clamp(0, 65535, cur[1] + j[1] * h)))
+            elif j == "bezier":
+                point1 = parse_pair(font[i][n+1], cur)
+                point2 = parse_pair(font[i][n+2], cur)
+                pointC = parse_pair(font[i][n+3], cur)
+                n += 3
+                result += draw_bezier_curve(point1, point2, pointC, ps=10)
+            else: result.append((cur[0] + j[0] * w, cur[1] + j[1] * h))
+            n += 1
         cur[0] += w + kerning
         result.append((0, 0))
     is_zero = False
@@ -267,12 +292,13 @@ def draw_bezier_curve(p1, p2, pC, ps=100):
         res.append(lerp2d(a, b, t))
     return res
 
-def encode_drawing(res):
+def encode_drawing(res, comment=""):
     blob = b""
     blob += int.to_bytes(len(res), 4, "little")
     for x, y in res:
-        blob += int.to_bytes(int(x), 2, "little")
-        blob += int.to_bytes(int(y), 2, "little")
+        blob += int.to_bytes(int(x) % 65536, 2, "little")
+        blob += int.to_bytes(int(y) % 65536, 2, "little")
+    blob += comment.encode("utf-8") # >:)
     blob += b"\x00" * (1028 - len(blob))
     return base64.b64encode(zlib.compress(blob)).rstrip(b"=").decode()
 
@@ -740,7 +766,7 @@ def construct_program(prg, filename, comments, c):
         l, msg = i.operand
         output += f"DEFINE LABEL {l}\n"
         label = draw_comment(msg, 25000)
-        output += f"{encode_drawing(label)};\n"
+        output += f"{encode_drawing(label, msg)};\n"
         output += "\n"
 
     return output

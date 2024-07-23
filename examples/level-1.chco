@@ -1,4 +1,4 @@
 
-copy inbox outbox;
-copy inbox outbox;
-copy inbox outbox;
+times 0 3 n {
+    copy inbox outbox;
+}

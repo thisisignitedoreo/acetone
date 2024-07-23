@@ -1,0 +1,17 @@
+
+zero = 5;
+c = 0;
+
+addlabel zero "zero";
+addlabel c "C";
+
+while {
+    copy zero c;
+    inbox;
+    while not zero {
+        add c;
+        copyto c;
+        inbox;
+    }
+    copy c outbox;
+}

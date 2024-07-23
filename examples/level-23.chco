@@ -1,0 +1,18 @@
+
+zero = 5;
+c = 0;
+
+addlabel c "c";
+
+while {
+    copy inbox c;
+    while not zero {
+        sub c;
+        if negative {
+            add c;
+            copyto c;
+        }
+        inbox;
+    }
+    copy c outbox;
+}
