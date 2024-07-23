@@ -15,7 +15,7 @@ acetone's syntax is a little bit different than some other programming languages
    3.4. TOKEN_OCURLY: `{`<br/>
    3.5. TOKEN_CCURLY: `}`<br/>
    3.6. TOKEN_SEMICOLON: `;`<br/>
-   3.7. TOKEN_EQUALS: `=` _(unused yet)_<br/>
+   3.7. TOKEN_EQUALS: `=`<br/>
    also note: word tokens can have not only alphanumeric symbols, but also some
    specials, since they are not used in any way: `_+-:/!?`<br/>
    but, they have to not start with a number: `aword`, `bump+`, `++--`, `???`
