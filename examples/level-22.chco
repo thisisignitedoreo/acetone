@@ -1,4 +1,16 @@
 
+zero = 9;
+origin = 0;
+first = 1;
+second = 2;
+temp = 3;
+
+addlabel zero "ZERO";
+addlabel origin "o";
+addlabel first "1";
+addlabel second "2";
+addlabel temp "t";
+
 while {
     copy inbox 0;
     copy 9 1;

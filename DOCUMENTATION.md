@@ -9,6 +9,7 @@ acetone's syntax is a little bit different than some other programming languages
    tokens
 3. there are only 7 token types:<br/>
    3.1. TOKEN_WORD: any word: `word`<br/>
+   3.1. TOKEN_STRING: any string: `"stringy\r\n\t\\"`<br/>
    3.2. TOKEN_NUMBER: any number (no floating point magic): `123`<br/>
    3.3. TOKEN_REFNUMBER: any pointer (e.g. number reference): `[0]`<br/>
    3.4. TOKEN_OCURLY: `{`<br/>
@@ -24,6 +25,18 @@ every statement ends with a semicolon<br/>
 blocks of code are enclosed in curly braces (`{` and `}`)
 
 comments start with a double slash (`//`)
+
+## variables
+you can define variables like this:
+```dart
+name = 0
+name = [0]
+```
+
+those can only be numbers or pointers
+
+note: pointers in variables aren't dereferenced, rather leaved as-is
+note: you can not dereference variable (yet?)
 
 ## internal statements
 a handful of statements are just in-game commands:
@@ -50,6 +63,8 @@ all others are either shortcuts or interface logic:
 - `call`</br>
   either call a macro (inline it) or go to a section (does **not** go back to
   where it was called)
+- `addlabel X text`</br>
+  create label with text on X
 
 ## ifs, loops, macros
 
@@ -114,7 +129,18 @@ else { call no; }
 // note: this results in an infinite loop
 ```
 
-note that both section and macro names are case sensetive.
+times is a directive which will repeat code snippet n times, while setting variable
+to iteration.
+
+```dart
+
+// from 0 to 2 step 1
+times 0 3 n {
+    copy inbox n;
+}
+
+```
+
 
 ---
 

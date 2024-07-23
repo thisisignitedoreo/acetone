@@ -1,0 +1,44 @@
+
+first = 0;
+second = 1;
+third = 2;
+temp = 3;
+
+addlabel first "1";
+addlabel second '2';
+addlabel third "3";
+addlabel temp "t";
+
+macro sort_pair_1 {
+    copyfrom first;
+    sub second;
+    if positive {
+        copy first temp;
+        copy second first;
+        copy temp second;
+    }
+}
+
+macro sort_pair_2 {
+    copyfrom second;
+    sub third;
+    if positive {
+        copy second temp;
+        copy third second;
+        copy temp third;
+    }
+}
+
+while {
+    copy inbox first;
+    copy inbox second;
+    copy inbox third;
+
+    call sort_pair_1;
+    call sort_pair_2;
+    call sort_pair_1;
+
+    copy first outbox;
+    copy second outbox;
+    copy third outbox;
+}
