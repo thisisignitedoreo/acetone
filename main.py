@@ -449,7 +449,7 @@ def parse(lexed, r=0, last_loop=-1):
         else:
             n -= 1
         
-        if operation not in ["if", "while", "macro", "section", "times", "call", "addlabel", "break", "continue", "copy", "inbox", "outbox", "copyto", "copyfrom", "add", "sub", "bump+", "bump-", "jump", "jumpz", "jumpn"]:
+        if operation not in ["if", "while", "macro", "section", "times", "call", "addlabel", "break", "continue", "copy", "inbox", "outbox", "copyto", "copyfrom", "add", "sub", "bump+", "bump-", "jump", "jumpz", "jumpn", "label"]:
             error_loc(oploc, "invalid operataion, refer to docs to see list of valid operations")
 
         if operation == "if":

@@ -1,0 +1,24 @@
+
+counter = 13;
+zero = 14;
+
+addlabel counter "c";
+addlabel zero "0";
+
+while {
+    copy zero counter;
+    inbox;
+    while not zero {
+        copyto [counter];
+        bump+ counter;
+        inbox;
+    }
+    bump- counter;
+    copyfrom counter;
+    while not zero {
+        copy [counter] outbox;
+        bump- counter;
+    }
+    copy [counter] outbox;
+}
+

@@ -1,0 +1,30 @@
+
+zero = 14;
+origin = 15;
+counter = 16;
+result = 17;
+
+addlabel zero "0";
+addlabel origin "o";
+addlabel counter "c";
+addlabel result "r";
+
+while {
+    copy zero counter;
+    copyto counter;
+    copyto result;
+    copy inbox origin;
+
+    copyfrom [counter];
+    while not zero {
+        copyfrom origin;
+        sub [counter];
+        if zero {
+            bump+ result;
+        }
+        bump+ counter;
+        copyfrom [counter];
+    }
+    copy result outbox;
+}
+

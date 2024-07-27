@@ -1,0 +1,20 @@
+
+zero = 5;
+counter = 6;
+origin = 7;
+
+while {
+    label outer;
+    copy inbox origin;
+    copy zero counter;
+    copyfrom [counter];
+    while not zero {
+        copyfrom origin;
+        sub [counter];
+        if zero { jump outer; }
+        bump+ counter;
+        copyfrom [counter];
+    }
+    copy origin outbox;
+}
+
