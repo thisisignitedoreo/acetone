@@ -410,8 +410,9 @@ sections = set()
 
 definitions = {}
 
+s = 0
+
 def get_variable(token):
-    print(token.value)
     if token.value not in definitions:
         error_loc(token.loc, "no such variable")
     
@@ -423,11 +424,12 @@ def get_variable(token):
     return Value(v, TOKEN_NUMBER)
 
 def parse(lexed, r=0, last_loop=-1):
-    global macros, sections, definitions
+    global macros, sections, definitions, s
     prg = []
     n = 0
 
     while n < len(lexed):
+        s += 1
         current_token = lexed[n]
         expect(current_token, TOKEN_WORD)
         
@@ -466,21 +468,21 @@ def parse(lexed, r=0, last_loop=-1):
                 elsebranch = []
             condition = parse_condition(condition, oploc)
             if condition == "z":
-                prg.append(Op(OP_JUMPZ, f"styreneif{oppos+r}start", oploc))
-                prg.append(Op(OP_JUMP, f"styreneif{oppos+r}else", oploc))
+                prg.append(Op(OP_JUMPZ, f"styreneif{s}start", oploc))
+                prg.append(Op(OP_JUMP, f"styreneif{s}else", oploc))
             if condition == "n":
-                prg.append(Op(OP_JUMPN, f"styreneif{oppos+r}start", oploc))
-                prg.append(Op(OP_JUMP, f"styreneif{oppos+r}else", oploc))
+                prg.append(Op(OP_JUMPN, f"styreneif{s}start", oploc))
+                prg.append(Op(OP_JUMP, f"styreneif{s}else", oploc))
             if condition == "!z":
-                prg.append(Op(OP_JUMPZ, f"styreneif{oppos+r}else", oploc))
+                prg.append(Op(OP_JUMPZ, f"styreneif{s}else", oploc))
             if condition == "!n":
-                prg.append(Op(OP_JUMPN, f"styreneif{oppos+r}else", oploc))
-            prg.append(Op(OP_LABEL, f"styreneif{oppos+r}start", oploc))
+                prg.append(Op(OP_JUMPN, f"styreneif{s}else", oploc))
+            prg.append(Op(OP_LABEL, f"styreneif{s}start", oploc))
             prg += ifbranch
-            prg.append(Op(OP_JUMP, f"styreneif{oppos+r}end", oploc))
-            prg.append(Op(OP_LABEL, f"styreneif{oppos+r}else", oploc))
+            prg.append(Op(OP_JUMP, f"styreneif{s}end", oploc))
+            prg.append(Op(OP_LABEL, f"styreneif{s}else", oploc))
             prg += elsebranch
-            prg.append(Op(OP_LABEL, f"styreneif{oppos+r}end", oploc))
+            prg.append(Op(OP_LABEL, f"styreneif{s}end", oploc))
         elif operation == "while":
             n += 1
             condition = []
@@ -488,32 +490,33 @@ def parse(lexed, r=0, last_loop=-1):
                 condition.append(lexed[n])
                 n += 1
             condition = parse_condition(condition, oploc, loop=True)
-            body = parse(lexed[n+1:lexed[n].pair-r], r+n+1, oppos+r)
+            olds = s
+            body = parse(lexed[n+1:lexed[n].pair-r], r+n+1, s)
             if condition == "z":
-                prg.append(Op(OP_JUMPZ, f"styreneloop{oppos+r}", oploc))
-                prg.append(Op(OP_JUMP, f"styreneloop{oppos+r}skip", oploc))
+                prg.append(Op(OP_JUMPZ, f"styreneloop{olds}", oploc))
+                prg.append(Op(OP_JUMP, f"styreneloop{olds}skip", oploc))
             if condition == "!z":
-                prg.append(Op(OP_JUMPZ, f"styreneloop{oppos+r}skip", oploc))
-                prg.append(Op(OP_JUMP, f"styreneloop{oppos+r}", oploc))
+                prg.append(Op(OP_JUMPZ, f"styreneloop{olds}skip", oploc))
+                prg.append(Op(OP_JUMP, f"styreneloop{olds}", oploc))
             if condition == "n":
-                prg.append(Op(OP_JUMPN, f"styreneloop{oppos+r}", oploc))
-                prg.append(Op(OP_JUMP, f"styreneloop{oppos+r}skip", oploc))
+                prg.append(Op(OP_JUMPN, f"styreneloop{olds}", oploc))
+                prg.append(Op(OP_JUMP, f"styreneloop{olds}skip", oploc))
             if condition == "!n":
-                prg.append(Op(OP_JUMPN, f"styreneloop{oppos+r}skip", oploc))
-                prg.append(Op(OP_JUMP, f"styreneloop{oppos+r}", oploc))
-            prg.append(Op(OP_LABEL, f"styreneloop{oppos+r}", oploc))
+                prg.append(Op(OP_JUMPN, f"styreneloop{olds}skip", oploc))
+                prg.append(Op(OP_JUMP, f"styreneloop{olds}", oploc))
+            prg.append(Op(OP_LABEL, f"styreneloop{olds}", oploc))
             prg += body
-            prg.append(Op(OP_LABEL, f"styreneloop{oppos+r}check", oploc))
-            if condition == "": prg.append(Op(OP_JUMP, f"styreneloop{oppos+r}", oploc))
-            if condition == "z": prg.append(Op(OP_JUMPZ, f"styreneloop{oppos+r}", oploc))
+            prg.append(Op(OP_LABEL, f"styreneloop{olds}check", oploc))
+            if condition == "": prg.append(Op(OP_JUMP, f"styreneloop{olds}", oploc))
+            if condition == "z": prg.append(Op(OP_JUMPZ, f"styreneloop{olds}", oploc))
             if condition == "!z":
-                prg.append(Op(OP_JUMPZ, f"styreneloop{oppos+r}skip", oploc))
-                prg.append(Op(OP_JUMP, f"styreneloop{oppos+r}", oploc))
-            if condition == "n": prg.append(Op(OP_JUMPN, f"styreneloop{oppos+r}", oploc))
+                prg.append(Op(OP_JUMPZ, f"styreneloop{olds}skip", oploc))
+                prg.append(Op(OP_JUMP, f"styreneloop{olds}", oploc))
+            if condition == "n": prg.append(Op(OP_JUMPN, f"styreneloop{olds}", oploc))
             if condition == "!n":
-                prg.append(Op(OP_JUMPN, f"styreneloop{oppos+r}skip", oploc))
-                prg.append(Op(OP_JUMP, f"styreneloop{oppos+r}", oploc))
-            prg.append(Op(OP_LABEL, f"styreneloop{oppos+r}skip", oploc))
+                prg.append(Op(OP_JUMPN, f"styreneloop{olds}skip", oploc))
+                prg.append(Op(OP_JUMP, f"styreneloop{olds}", oploc))
+            prg.append(Op(OP_LABEL, f"styreneloop{olds}skip", oploc))
             n = lexed[n].pair + 1 - r
         elif operation == "macro":
             n += 1
