@@ -458,6 +458,7 @@ def parse(lexed, r=0, last_loop=-1):
             while lexed[n].type != TOKEN_OCURLY:
                 condition.append(lexed[n])
                 n += 1
+            olds = s
             ifbranch = parse(lexed[n+1:lexed[n].pair-r], r+n+1, last_loop)
             n = lexed[n].pair + 1 - r
             if n < len(lexed) and lexed[n].value == "else":
@@ -468,21 +469,21 @@ def parse(lexed, r=0, last_loop=-1):
                 elsebranch = []
             condition = parse_condition(condition, oploc)
             if condition == "z":
-                prg.append(Op(OP_JUMPZ, f"styreneif{s}start", oploc))
-                prg.append(Op(OP_JUMP, f"styreneif{s}else", oploc))
+                prg.append(Op(OP_JUMPZ, f"styreneif{olds}start", oploc))
+                prg.append(Op(OP_JUMP, f"styreneif{olds}else", oploc))
             if condition == "n":
-                prg.append(Op(OP_JUMPN, f"styreneif{s}start", oploc))
-                prg.append(Op(OP_JUMP, f"styreneif{s}else", oploc))
+                prg.append(Op(OP_JUMPN, f"styreneif{olds}start", oploc))
+                prg.append(Op(OP_JUMP, f"styreneif{olds}else", oploc))
             if condition == "!z":
-                prg.append(Op(OP_JUMPZ, f"styreneif{s}else", oploc))
+                prg.append(Op(OP_JUMPZ, f"styreneif{olds}else", oploc))
             if condition == "!n":
-                prg.append(Op(OP_JUMPN, f"styreneif{s}else", oploc))
-            prg.append(Op(OP_LABEL, f"styreneif{s}start", oploc))
+                prg.append(Op(OP_JUMPN, f"styreneif{olds}else", oploc))
+            prg.append(Op(OP_LABEL, f"styreneif{olds}start", oploc))
             prg += ifbranch
-            prg.append(Op(OP_JUMP, f"styreneif{s}end", oploc))
-            prg.append(Op(OP_LABEL, f"styreneif{s}else", oploc))
+            prg.append(Op(OP_JUMP, f"styreneif{olds}end", oploc))
+            prg.append(Op(OP_LABEL, f"styreneif{olds}else", oploc))
             prg += elsebranch
-            prg.append(Op(OP_LABEL, f"styreneif{s}end", oploc))
+            prg.append(Op(OP_LABEL, f"styreneif{olds}end", oploc))
         elif operation == "while":
             n += 1
             condition = []
