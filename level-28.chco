@@ -1,0 +1,14 @@
+
+cell = 24;
+addlabel cell "REF";
+
+while {
+    copy inbox cell;
+    copyfrom [cell];
+    while not zero {
+        outbox;
+        bump+ cell;
+        copyfrom [cell];
+    }
+}
+

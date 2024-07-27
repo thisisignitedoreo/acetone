@@ -1,0 +1,21 @@
+
+sum = 0;
+origin = 1;
+zero = 5;
+
+addlabel sum "s";
+addlabel origin "o";
+addlabel zero "0";
+
+while {
+    copy inbox origin;
+    copyto sum;
+    while not zero {
+        bump- origin;
+        add sum;
+        copyto sum;
+        copyfrom origin;
+    }
+    copy sum outbox;
+}
+

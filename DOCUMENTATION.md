@@ -9,9 +9,10 @@ acetone's syntax is a little bit different than some other programming languages
    tokens
 3. there are only 7 token types:<br/>
    3.1. TOKEN_WORD: any word: `word`<br/>
+   3.3. TOKEN_REFWORD: any word reference: `[variable]`<br/>
    3.1. TOKEN_STRING: any string: `"stringy\r\n\t\\"`<br/>
    3.2. TOKEN_NUMBER: any number (no floating point magic): `123`<br/>
-   3.3. TOKEN_REFNUMBER: any pointer (e.g. number reference): `[0]`<br/>
+   3.3. TOKEN_REFNUMBER: any number reference: `[0]`<br/>
    3.4. TOKEN_OCURLY: `{`<br/>
    3.5. TOKEN_CCURLY: `}`<br/>
    3.6. TOKEN_SEMICOLON: `;`<br/>
@@ -30,13 +31,14 @@ comments start with a double slash (`//`)
 you can define variables like this:
 ```dart
 name = 0
-name = [0]
 ```
 
-those can only be numbers or pointers
+those can only be numbers
 
-note: pointers in variables aren't dereferenced, rather leaved as-is
-note: you can not dereference variable (yet?)
+note: you can dereference variable like this:
+```dart
+copy [ref] outbox;
+```
 
 ## internal statements
 a handful of statements are just in-game commands:

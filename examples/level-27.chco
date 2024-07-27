@@ -1,0 +1,10 @@
+
+cell = 10;
+
+addlabel cell "REF";
+
+while {
+    copy inbox cell;
+    copy [ref] outbox;
+}
+

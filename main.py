@@ -40,6 +40,7 @@ TOKEN_WORD = "TOKEN_WORD"
 TOKEN_OCURLY = "TOKEN_OCURLY"
 TOKEN_CCURLY = "TOKEN_CCURLY"
 TOKEN_REFNUMBER = "TOKEN_REFNUMBER"
+TOKEN_REFWORD = "TOKEN_REFWORD"
 TOKEN_SEMICOLON = "TOKEN_SEMICOLON"
 TOKEN_EQUALS = "TOKEN_EQUALS"
 
@@ -75,6 +76,7 @@ class RefNumber:
 
 ALPHABET = "qwertyuyiopasdfghjklzxcvbnm"
 NUMBERS = "1234567890"
+SPECIALS = "_+-:/!?"
 
 def error_loc(loc, string):
     print(loc, ": error: ", string, sep="")
@@ -118,10 +120,10 @@ def lex(src, filename):
                 char += 2
                 n += 1
         
-        if src[n] in ALPHABET + ALPHABET.upper() + "_+-:/!?":
+        if src[n] in ALPHABET + ALPHABET.upper() + SPECIALS:
             char_start = char
             buffer = ""
-            while src[n] in ALPHABET + ALPHABET.upper() + NUMBERS + "_+-:/!?":
+            while src[n] in ALPHABET + ALPHABET.upper() + NUMBERS + SPECIALS:
                 buffer += src[n]
                 n += 1
                 char += 1
@@ -157,24 +159,33 @@ def lex(src, filename):
             n += 1
             char += 1
         elif src[n] == "[":
-            buf = ""
             n += 1
+            buf = ""
+            origchar = char
             char += 1
             while src[n] != ']':
-                if src[n] not in NUMBERS:
-                    error_loc(Location(filename, line, char), "expected only numbers")
                 buf += src[n]
                 char += 1
                 n += 1
             n += 1
             char += 1
-            buf = int(buf.strip())
-            
+            buf = buf.lower()
+
+            isint = lambda x: all([i in NUMBERS + " \t" for i in x])
+            isword = lambda x: all([i in ALPHABET + NUMBERS + SPECIALS + " \t" for i in x])
+            refnum = isint(buf)
+            if isint(buf):
+                buf = int(buf.strip())
+            elif isword(buf):
+                buf = buf.strip()
+            else:
+                error_loc(Location(filename, line, char - len(buf) - 1), "isn't a word nor a number")
+
             tokens.append(
                 Token(
-                    Location(filename, line, char),
-                    RefNumber(buf),
-                    TOKEN_REFNUMBER
+                    Location(filename, line, origchar),
+                    RefNumber(buf) if refnum else buf,
+                    TOKEN_REFNUMBER if refnum else TOKEN_REFWORD
                 )
             )
         elif src[n] in "\"'`":
@@ -328,6 +339,13 @@ class Op:
     def op_str(self): return f'{self.op:<10}'
     def __str__(self): return f'{self.loc}: {self.op} {self.operand}'
 
+@dataclass
+class Value:
+    value: int
+    type: str
+    
+    def __str__(self): return f'{self.value}' if self.type == "TOKEN_NUMBER" else f'[{self.value}]'
+
 def token_type_word(token, istype=False):
     if istype: token_type = token
     else: token_type = token.type
@@ -392,15 +410,24 @@ sections = set()
 
 definitions = {}
 
-s = 0
+def get_variable(token):
+    print(token.value)
+    if token.value not in definitions:
+        error_loc(token.loc, "no such variable")
+    
+    v = definitions[token.value]
+
+    if token.type == TOKEN_REFWORD:
+        return Value(v, TOKEN_REFNUMBER)
+
+    return Value(v, TOKEN_NUMBER)
 
 def parse(lexed, r=0, last_loop=-1):
-    global macros, sections, definitions, s
+    global macros, sections, definitions
     prg = []
     n = 0
 
     while n < len(lexed):
-        s += 1
         current_token = lexed[n]
         expect(current_token, TOKEN_WORD)
         
@@ -411,7 +438,7 @@ def parse(lexed, r=0, last_loop=-1):
         n += 1
         if lexed[n].type == TOKEN_EQUALS:
             n += 1
-            expect(lexed[n], TOKEN_REFNUMBER + TOKEN_NUMBER)
+            expect(lexed[n], TOKEN_NUMBER)
             definitions[operation] = lexed[n].value
             n += 1
             expect(lexed[n], TOKEN_SEMICOLON)
@@ -419,6 +446,9 @@ def parse(lexed, r=0, last_loop=-1):
             continue
         else:
             n -= 1
+        
+        if operation not in ["if", "while", "macro", "section", "times", "call", "addlabel", "break", "continue", "copy", "inbox", "outbox", "copyto", "copyfrom", "add", "sub", "bump+", "bump-", "jump", "jumpz", "jumpn"]:
+            error_loc(oploc, "invalid operataion, refer to docs to see list of valid operations")
 
         if operation == "if":
             condition = []
@@ -436,21 +466,21 @@ def parse(lexed, r=0, last_loop=-1):
                 elsebranch = []
             condition = parse_condition(condition, oploc)
             if condition == "z":
-                prg.append(Op(OP_JUMPZ, f"styreneif{s}start", oploc))
-                prg.append(Op(OP_JUMP, f"styreneif{s}else", oploc))
+                prg.append(Op(OP_JUMPZ, f"styreneif{oppos+r}start", oploc))
+                prg.append(Op(OP_JUMP, f"styreneif{oppos+r}else", oploc))
             if condition == "n":
-                prg.append(Op(OP_JUMPN, f"styreneif{s}start", oploc))
-                prg.append(Op(OP_JUMP, f"styreneif{s}else", oploc))
+                prg.append(Op(OP_JUMPN, f"styreneif{oppos+r}start", oploc))
+                prg.append(Op(OP_JUMP, f"styreneif{oppos+r}else", oploc))
             if condition == "!z":
-                prg.append(Op(OP_JUMPZ, f"styreneif{s}else", oploc))
+                prg.append(Op(OP_JUMPZ, f"styreneif{oppos+r}else", oploc))
             if condition == "!n":
-                prg.append(Op(OP_JUMPN, f"styreneif{s}else", oploc))
-            prg.append(Op(OP_LABEL, f"styreneif{s}start", oploc))
+                prg.append(Op(OP_JUMPN, f"styreneif{oppos+r}else", oploc))
+            prg.append(Op(OP_LABEL, f"styreneif{oppos+r}start", oploc))
             prg += ifbranch
-            prg.append(Op(OP_JUMP, f"styreneif{s}end", oploc))
-            prg.append(Op(OP_LABEL, f"styreneif{s}else", oploc))
+            prg.append(Op(OP_JUMP, f"styreneif{oppos+r}end", oploc))
+            prg.append(Op(OP_LABEL, f"styreneif{oppos+r}else", oploc))
             prg += elsebranch
-            prg.append(Op(OP_LABEL, f"styreneif{s}end", oploc))
+            prg.append(Op(OP_LABEL, f"styreneif{oppos+r}end", oploc))
         elif operation == "while":
             n += 1
             condition = []
@@ -458,32 +488,32 @@ def parse(lexed, r=0, last_loop=-1):
                 condition.append(lexed[n])
                 n += 1
             condition = parse_condition(condition, oploc, loop=True)
-            body = parse(lexed[n+1:lexed[n].pair-r], r+n+1, oppos + r)
+            body = parse(lexed[n+1:lexed[n].pair-r], r+n+1, oppos+r)
             if condition == "z":
-                prg.append(Op(OP_JUMPZ, f"styreneloop{s}", oploc))
-                prg.append(Op(OP_JUMP, f"styreneloop{s}skip", oploc))
+                prg.append(Op(OP_JUMPZ, f"styreneloop{oppos+r}", oploc))
+                prg.append(Op(OP_JUMP, f"styreneloop{oppos+r}skip", oploc))
             if condition == "!z":
-                prg.append(Op(OP_JUMPZ, f"styreneloop{s}skip", oploc))
-                prg.append(Op(OP_JUMP, f"styreneloop{s}", oploc))
+                prg.append(Op(OP_JUMPZ, f"styreneloop{oppos+r}skip", oploc))
+                prg.append(Op(OP_JUMP, f"styreneloop{oppos+r}", oploc))
             if condition == "n":
-                prg.append(Op(OP_JUMPN, f"styreneloop{s}", oploc))
-                prg.append(Op(OP_JUMP, f"styreneloop{s}skip", oploc))
+                prg.append(Op(OP_JUMPN, f"styreneloop{oppos+r}", oploc))
+                prg.append(Op(OP_JUMP, f"styreneloop{oppos+r}skip", oploc))
             if condition == "!n":
-                prg.append(Op(OP_JUMPN, f"styreneloop{s}skip", oploc))
-                prg.append(Op(OP_JUMP, f"styreneloop{s}", oploc))
-            prg.append(Op(OP_LABEL, f"styreneloop{s}", oploc))
+                prg.append(Op(OP_JUMPN, f"styreneloop{oppos+r}skip", oploc))
+                prg.append(Op(OP_JUMP, f"styreneloop{oppos+r}", oploc))
+            prg.append(Op(OP_LABEL, f"styreneloop{oppos+r}", oploc))
             prg += body
-            prg.append(Op(OP_LABEL, f"styreneloop{s}check", oploc))
-            if condition == "": prg.append(Op(OP_JUMP, f"styreneloop{s}", oploc))
-            if condition == "z": prg.append(Op(OP_JUMPZ, f"styreneloop{s}", oploc))
+            prg.append(Op(OP_LABEL, f"styreneloop{oppos+r}check", oploc))
+            if condition == "": prg.append(Op(OP_JUMP, f"styreneloop{oppos+r}", oploc))
+            if condition == "z": prg.append(Op(OP_JUMPZ, f"styreneloop{oppos+r}", oploc))
             if condition == "!z":
-                prg.append(Op(OP_JUMPZ, f"styreneloop{s}skip", oploc))
-                prg.append(Op(OP_JUMP, f"styreneloop{s}", oploc))
-            if condition == "n": prg.append(Op(OP_JUMPN, f"styreneloop{s}", oploc))
+                prg.append(Op(OP_JUMPZ, f"styreneloop{oppos+r}skip", oploc))
+                prg.append(Op(OP_JUMP, f"styreneloop{oppos+r}", oploc))
+            if condition == "n": prg.append(Op(OP_JUMPN, f"styreneloop{oppos+r}", oploc))
             if condition == "!n":
-                prg.append(Op(OP_JUMPN, f"styreneloop{s}skip", oploc))
-                prg.append(Op(OP_JUMP, f"styreneloop{s}", oploc))
-            prg.append(Op(OP_LABEL, f"styreneloop{s}skip", oploc))
+                prg.append(Op(OP_JUMPN, f"styreneloop{oppos+r}skip", oploc))
+                prg.append(Op(OP_JUMP, f"styreneloop{oppos+r}", oploc))
+            prg.append(Op(OP_LABEL, f"styreneloop{oppos+r}skip", oploc))
             n = lexed[n].pair + 1 - r
         elif operation == "macro":
             n += 1
@@ -537,7 +567,7 @@ def parse(lexed, r=0, last_loop=-1):
             n += 1
             while lexed[n].type != TOKEN_SEMICOLON:
                 params.append(lexed[n])
-                expect(lexed[n], TOKEN_WORD + TOKEN_NUMBER + TOKEN_REFNUMBER + TOKEN_STRING)
+                expect(lexed[n], TOKEN_WORD + TOKEN_REFWORD + TOKEN_NUMBER + TOKEN_REFNUMBER + TOKEN_STRING)
                 n += 1
                 if n >= len(lexed):
                     error_loc(oploc, "expected semicolon, got EOF. missing semicolon?")
@@ -557,11 +587,8 @@ def parse(lexed, r=0, last_loop=-1):
             elif operation.lower() == "addlabel":
                 check_params(operation.lower(), oploc, params, [TOKEN_WORD, TOKEN_STRING])
                 cell = params[0]
-                if cell.type == TOKEN_WORD:
-                    if cell.value in definitions.keys():
-                        v = definitions[cell.value]
-                    else:
-                        error_loc(cell.loc, "no such variable")
+                if cell.type in TOKEN_WORD + TOKEN_REFWORD:
+                    v = get_variable(cell)
                 else:
                     v = cell.value
 
@@ -572,34 +599,31 @@ def parse(lexed, r=0, last_loop=-1):
                 check_params(operation.lower(), oploc, params, [])
                 if last_loop == -1:
                     error_loc(oploc, "break outside loop")
-                prg.append(Op(OP_JUMP, f"styreneloop{last_loop}end", oploc))
+                prg.append(Op(OP_JUMP, f"styreneloop{last_loop}skip", oploc))
 
             elif operation.lower() == "continue":
                 check_params(operation.lower(), oploc, params, [])
                 if last_loop == -1:
                     error_loc(oploc, "continue outside loop")
+                print(f"continue: styreneloop{last_loop}")
                 prg.append(Op(OP_JUMP, f"styreneloop{last_loop}", oploc))
 
             elif operation.lower() == "copy":
-                check_params(operation.lower(), oploc, params, [TOKEN_WORD + TOKEN_NUMBER + TOKEN_REFNUMBER, TOKEN_WORD + TOKEN_NUMBER + TOKEN_REFNUMBER])
+                check_params(operation.lower(), oploc, params, [TOKEN_WORD + TOKEN_REFWORD + TOKEN_NUMBER + TOKEN_REFNUMBER, TOKEN_WORD + TOKEN_REFWORD + TOKEN_NUMBER + TOKEN_REFNUMBER])
                 f, t = map(lambda x: x, params)
-                if f.type == TOKEN_WORD:
-                    if f.value != "inbox" and f.value not in definitions.keys():
-                        error_loc(f.loc, "expected `inbox` or variable name")
+                if f.type in TOKEN_WORD + TOKEN_REFWORD:
                     if f.value == "inbox":
                         prg.append(Op(OP_INBOX, None, oploc))
                     else:
-                        prg.append(Op(OP_COPYFROM, definitions[f.value], oploc))
+                        prg.append(Op(OP_COPYFROM, get_variable(f), oploc))
                 else:
                     prg.append(Op(OP_COPYFROM, f.value, oploc))
 
-                if t.type == TOKEN_WORD:
-                    if t.value != "outbox" and t.value not in definitions.keys():
-                        error_loc(t.loc, "expected `outbox` or variable name")
+                if t.type in TOKEN_WORD + TOKEN_REFWORD:
                     if t.value == "outbox":
                         prg.append(Op(OP_OUTBOX, None, oploc))
                     else:
-                        prg.append(Op(OP_COPYTO, definitions[t.value], oploc))
+                        prg.append(Op(OP_COPYTO, get_variable(t), oploc))
                 else:
                     prg.append(Op(OP_COPYFROM, f.value, oploc))
 
@@ -612,64 +636,51 @@ def parse(lexed, r=0, last_loop=-1):
                 prg.append(Op(OP_OUTBOX, None, oploc))
 
             elif operation.lower() == "add":
-                check_params(operation.lower(), oploc, params, [TOKEN_NUMBER + TOKEN_REFNUMBER + TOKEN_WORD])
-                if params[0].type == TOKEN_WORD:
-                    if params[0].value in definitions.keys():
-                        v = definitions[params[0].value]
-                    else:
-                        error_loc(params[0].loc, "no such variable")
+                check_params(operation.lower(), oploc, params, [TOKEN_NUMBER + TOKEN_REFNUMBER + TOKEN_WORD + TOKEN_REFWORD])
+                if params[0].type in TOKEN_WORD + TOKEN_REFWORD:
+                    v = get_variable(params[0])
                 else:
                     v = params[0].value
                 prg.append(Op(OP_ADD, v, oploc))
             elif operation.lower() == "sub":
-                check_params(operation.lower(), oploc, params, [TOKEN_NUMBER + TOKEN_REFNUMBER + TOKEN_WORD])
-                if params[0].type == TOKEN_WORD:
-                    if params[0].value in definitions.keys():
-                        v = definitions[params[0].value]
-                    else:
-                        error_loc(params[0].loc, "no such variable")
+                check_params(operation.lower(), oploc, params, [TOKEN_NUMBER + TOKEN_REFNUMBER + TOKEN_WORD + TOKEN_REFWORD])
+                
+                if params[0].type in TOKEN_WORD + TOKEN_REFWORD:
+                    v = get_variable(params[0])
                 else:
                     v = params[0].value
                 prg.append(Op(OP_SUB, v, oploc))
 
             elif operation.lower() == "bump+":
-                check_params(operation.lower(), oploc, params, [TOKEN_NUMBER + TOKEN_REFNUMBER + TOKEN_WORD])
-                if params[0].type == TOKEN_WORD:
-                    if params[0].value in definitions.keys():
-                        v = definitions[params[0].value]
-                    else:
-                        error_loc(params[0].loc, "no such variable")
+                check_params(operation.lower(), oploc, params, [TOKEN_NUMBER + TOKEN_REFNUMBER + TOKEN_WORD + TOKEN_REFWORD])
+                
+                if params[0].type in TOKEN_WORD + TOKEN_REFWORD:
+                    v = get_variable(params[0])
                 else:
                     v = params[0].value
                 prg.append(Op(OP_BUMPA, v, oploc))
             elif operation.lower() == "bump-":
-                check_params(operation.lower(), oploc, params, [TOKEN_NUMBER + TOKEN_REFNUMBER + TOKEN_WORD])
-                if params[0].type == TOKEN_WORD:
-                    if params[0].value in definitions.keys():
-                        v = definitions[params[0].value]
-                    else:
-                        error_loc(params[0].loc, "no such variable")
+                check_params(operation.lower(), oploc, params, [TOKEN_NUMBER + TOKEN_REFNUMBER + TOKEN_WORD + TOKEN_REFWORD])
+                
+                if params[0].type in TOKEN_WORD + TOKEN_REFWORD:
+                    v = get_variable(params[0])
                 else:
                     v = params[0].value
                 prg.append(Op(OP_BUMPS, v, oploc))
 
             elif operation.lower() == "copyfrom":
-                check_params(operation.lower(), oploc, params, [TOKEN_NUMBER + TOKEN_REFNUMBER + TOKEN_WORD])
-                if params[0].type == TOKEN_WORD:
-                    if params[0].value in definitions.keys():
-                        v = definitions[params[0].value]
-                    else:
-                        error_loc(params[0].loc, "no such variable")
+                check_params(operation.lower(), oploc, params, [TOKEN_NUMBER + TOKEN_REFNUMBER + TOKEN_WORD + TOKEN_REFWORD])
+                
+                if params[0].type in TOKEN_WORD + TOKEN_REFWORD:
+                    v = get_variable(params[0])
                 else:
                     v = params[0].value
                 prg.append(Op(OP_COPYFROM, v, oploc))
             elif operation.lower() == "copyto":
-                check_params(operation.lower(), oploc, params, [TOKEN_NUMBER + TOKEN_REFNUMBER + TOKEN_WORD])
-                if params[0].type == TOKEN_WORD:
-                    if params[0].value in definitions.keys():
-                        v = definitions[params[0].value]
-                    else:
-                        error_loc(params[0].loc, "no such variable")
+                check_params(operation.lower(), oploc, params, [TOKEN_NUMBER + TOKEN_REFNUMBER + TOKEN_WORD + TOKEN_REFWORD])
+                
+                if params[0].type in TOKEN_WORD + TOKEN_REFWORD:
+                    v = get_variable(params[0])
                 else:
                     v = params[0].value
                 prg.append(Op(OP_COPYTO, v, oploc))
@@ -837,7 +848,14 @@ if __name__ == "__main__":
     print("styrene (acetone compiler) v1.0")
     filename, comments, copy, static, comment = argparse(sys.argv)
 
-    src = open(filename).read()
+    if not os.path.isfile(filename) and filename != '-':
+        error("no such file")
+    elif filename == '-':
+        src = sys.stdin.read()
+        filename = "<stdin>"
+    else:
+        src = open(filename).read()
+    
     lexed = lex(src, filename)
     lexed = crossreference(lexed)
     prg = parse(lexed)
